@@ -1,10 +1,10 @@
 <div align="center">
     <a href="https://github.com/MarSeventh/CloudFlare-ImgBed"><img width="80%" alt="logo" src="static/readme/banner.png"/></a>
-    <p><em>🗂️开源文件托管解决方案，支持 Docker 和无服务器部署，支持 Telegram Bot 、 Cloudflare R2 、S3 等多种存储渠道，支持 WebDAV 协议和多种 RESTful API</em></p>
+    <p><em>🗂️开源文件托管解决方案，支持 Docker 和无服务器部署，支持 Telegram、Discord、Cloudflare R2、S3、Huggingface 等多种存储渠道，支持 WebDAV 协议和多种 RESTful API</em></p>
     <p>
         <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/blob/main/README.md">简体中文</a> | <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/blob/main/README_en.md">English</a> | <a href="https://cfbed.sanyue.de">官方网站</a>
     </p>
-    <div>
+    <p align="center">
         <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/MarSeventh/CloudFlare-ImgBed" alt="License" />
         </a>
@@ -26,8 +26,16 @@
         <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/network/members">
           <img src="https://img.shields.io/github/forks/MarSeventh/CloudFlare-ImgBed" alt="Forks" />
         </a>
-    </div>
+    </P>
+    <p align="center">
+      <a href="https://trendshift.io/repositories/14324" target="_blank">
+        <img src="https://trendshift.io/api/badge/repositories/14324" alt="GitHub Trending" height="80">
+      </a>
+    </p>
 </div>
+
+
+
 
 
 
@@ -51,6 +59,69 @@
 1. 部署使用出现问题，请先仔细查阅文档、常见问题解答以及已有issues。
 
 2. **注意**：本仓库为[Telegraph-Image](https://github.com/cf-pages/Telegraph-Image)项目的重制版，如果你觉得本项目不错，在支持本项目的同时，也请支持原项目。
+
+## 2026.3.4 V2.6.2 重构 Docker 镜像的说明
+
+> 本次版本对 Docker 镜像进行了重构，涉及基础镜像、目录结构和数据库等方面的变更，带来了并发、内存管理等方面的优化。为确保数据安全，请务必**先备份数据再进行升级**。
+>
+> ### 升级前：备份数据
+>
+> 1. 备份数据：在管理面板下载备份文件（若原来使用本地R2存储需要全部下载重传）
+> 2. 备份data文件夹
+>
+> ### 升级步骤
+>
+> 1. 拉取最新镜像：
+>
+>    ```bash
+>    docker compose pull
+>    ```
+>
+> 2. 使用新镜像启动容器：
+>
+>    ```bash
+>    docker compose up -d
+>    ```
+>
+> 3. 检查容器是否正常运行：
+>
+>    ```bash
+>    docker compose logs -f
+>    ```
+>
+>    确认日志中无报错信息后即可正常使用。
+>
+> 4. 恢复数据：在管理面板恢复全部数据（原来的R2文件需要重传）
+> 
+> ### 升级异常：回退版本
+>
+> 如果升级后出现异常，可通过以下步骤回退：
+>
+> 1. 停止容器：
+>
+>    ```bash
+>    docker compose down
+>    ```
+>
+> 2. 回退到旧版本镜像：
+>
+>    ```bash
+>    # amd64
+>    docker pull marseventh/cloudflare-imgbed@sha256:896dc1b79883
+>    # arm
+>    docker pull marseventh/cloudflare-imgbed@sha256:b5442ccc198c
+>    ```
+>
+>    同时修改 `docker-compose.yml` 中的 `image` 字段为对应旧版本 tag，然后重新启动：
+>
+>    ```bash
+>    docker compose up -d
+>    ```
+>
+> **注意事项**：
+> - 升级前请务必确认备份完整，必要时备份一份data文件夹
+> - 如果你使用了自定义的 `docker-compose.yml` 配置（如自定义端口、环境变量等），升级时请注意保留
+> - 遇到问题请先查阅文档和已有 issues，或提交新的 issue
 
 ## 2025.2.6  V2.0 版本升级注意事项
 
@@ -96,20 +167,24 @@
 
 **演示站点**：[CloudFlare ImgBed](https://cfbed.1314883.xyz/) 访问密码：`cfbed`
 
-![image-20250313204101984](static/readme/202503132041511.png)
+![image-20250313204101984](static/readme/login.png)
 
-![image-20250313204138886](static/readme/202503132041072.png)
+![image-20250313204101984](static/readme/upload.png)
 
 <details>
     <summary>其他页面效果展示</summary>
 
-![image-20250313204308225](static/readme/202503132043466.png)
+![image-20250313204138886](static/readme/uploading.png)
 
-![image-20250314152355339](static/readme/202503141524797.png)
+![image-20250313204308225](static/readme/dashboard.png)
+
+![image-20250314152355339](static/readme/customer-config.png)
 
 ![status-page](static/readme/status-page.png)
 
-![image-20250313204325002](static/readme/202503132043265.png)
+![public-gallery](static/readme/public-gallery.png)
+
+
 
 </details>
 
@@ -125,7 +200,7 @@
   
 - **Sponsors**：感谢以下赞助者对本项目的支持！
 
-  [![赞助者](https://afdian-sponsors.sanyue.de/image)](https://afdian.com/a/marseventh)
+  [![赞助者](https://afdian-sponsors.sanyue.de/image?columns=12)](https://afdian.com/a/marseventh)
   
 - **Contributors**：感谢以下贡献者对本项目的无私贡献！
 
@@ -141,7 +216,8 @@
 
 - **[CloudFlare](https://www.cloudflare.com) & [EdgeOne](https://edgeone.ai/?from=github)**：提供CDN加速和安全保护服务
 
-  <a href="https://www.cloudflare.com"><img src="static/readme/cloudflare-logo.png" alt="Cloudflare Logo" height="25"></a> <a href="https://edgeone.ai/?from=github"><img src="https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png" alt="Tencent Logo" height="25"></a>
+  <a href="https://www.cloudflare.com"><img src="static/readme/cloudflare-logo.png" alt="Cloudflare Logo" height="25"></a> <a href="https://edgeone.ai/?from=github"><img src="/static/readme/edgeone-logo.png" alt="Tencent Logo" height="25"></a>
 
-- **[亚洲云](https://www.asiayun.com/aff/WUDVIIUD)**：提供云计算服务资源支持
+- **[速维云](https://www.svyun.com/recommend/AELZ0UeMz8K11Zg7pEXC)**：提供云计算服务资源支持
 
+- **[Linux DO](https://linux.do/)**：真诚 友善 团结 专业

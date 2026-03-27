@@ -129,8 +129,22 @@ async function handlePut(request, env) {
     }
 
     const lastSlashIndex = fullPath.lastIndexOf('/');
-    const uploadFolder = lastSlashIndex > -1 ? fullPath.substring(0, lastSlashIndex) : '';
+    let uploadFolder = lastSlashIndex > -1 ? fullPath.substring(0, lastSlashIndex) : '';
     const fileName = lastSlashIndex > -1 ? fullPath.substring(lastSlashIndex + 1) : fullPath;
+
+    // 路径安全处理：防止路径穿越
+    if (uploadFolder) {
+        // 防止双重编码绕过：仅在检测到编码字符时解码
+        if (/%[0-9a-fA-F]{2}/.test(uploadFolder)) {
+            try { uploadFolder = decodeURIComponent(uploadFolder); } catch (e) { /* ignore */ }
+        }
+        uploadFolder = uploadFolder
+            .replace(/\.\./g, '_')
+            .replace(/\\/g, '/')
+            .replace(/\/{2,}/g, '/')
+            .replace(/^\/+/, '')
+            .replace(/\/+$/, '');
+    }
     
     const fileContent = await request.blob();
     const formData = new FormData();
@@ -139,6 +153,16 @@ async function handlePut(request, env) {
     const uploadUrl = new URL(`/upload`, request.url);
     if (uploadFolder) {
         uploadUrl.searchParams.set('uploadFolder', uploadFolder);
+    }
+
+    // 获取 WebDAV 配置的上传渠道
+    const othersConfig = await fetchOthersConfig(env);
+    const webdavConfig = othersConfig.webDAV || {};
+    if (webdavConfig.uploadChannel) {
+        uploadUrl.searchParams.set('uploadChannel', webdavConfig.uploadChannel);
+    }
+    if (webdavConfig.channelName) {
+        uploadUrl.searchParams.set('channelName', webdavConfig.channelName);
     }
 
     try {

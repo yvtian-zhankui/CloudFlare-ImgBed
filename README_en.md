@@ -1,11 +1,11 @@
 <div align="center">
     <a href="https://github.com/MarSeventh/CloudFlare-ImgBed"><img width="80%" alt="logo" src="static/readme/banner.png"/></a>
-    <p><em>🗂️Open-source file hosting solution, supporting Docker and serverless deployment, supporting multiple storage channels such as Telegram Bot, Cloudflare R2, S3, etc., supporting WebDAV protocol and various RESTful APIs.</em></p>
+    <p><em>🗂️Open-source file hosting solution, supporting Docker and serverless deployment, supporting multiple storage channels such as Telegram, Discord, Cloudflare R2, S3, Huggingface, etc., supporting WebDAV protocol and various RESTful APIs.</em></p>
     <p>
         <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/blob/main/README.md">简体中文</a> | <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/blob/main/README_en.md">English</a> | <a
         href="https://cfbed.sanyue.de/en">Official Website</a>
     </p>
-    <div>
+    <p align="center">
         <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/blob/main/LICENSE">
         <img src="https://img.shields.io/github/license/MarSeventh/CloudFlare-ImgBed" alt="License" />
         </a>
@@ -27,8 +27,15 @@
         <a href="https://github.com/MarSeventh/CloudFlare-ImgBed/network/members">
           <img src="https://img.shields.io/github/forks/MarSeventh/CloudFlare-ImgBed" alt="Forks" />
         </a>
-    </div>
+    </p>
+    <p align="center">
+      <a href="https://trendshift.io/repositories/14324" target="_blank">
+        <img src="https://trendshift.io/api/badge/repositories/14324" alt="GitHub Trending" height="80">
+      </a>
+    </p>
 </div>
+
+
 
 
 ---
@@ -45,6 +52,69 @@
 
 1. If you encounter issues during deployment or usage, please carefully read the documentation, FAQ, and existing issues first.
 2. **Note**: This repository is a remake of the [Telegraph-Image](https://github.com/cf-pages/Telegraph-Image) project. If you like this project, please support the original one as well.
+
+## 2026.3.4 V2.6.2 Docker Image Rebuild Notice
+
+> The Docker image has been rebuilt in this release, involving changes to the base image, directory structure, and database, bringing optimizations in concurrency, memory management, and more. To ensure data safety, please **back up your data before upgrading**.
+>
+> ### Before Upgrading: Back Up Data
+>
+> 1. Back up data: Download the backup file from the admin panel (if you were using local R2 storage, you need to download and re-upload all files)
+> 2. Back up the data folder
+>
+> ### Upgrade Steps
+>
+> 1. Pull the latest image:
+>
+>    ```bash
+>    docker compose pull
+>    ```
+>
+> 2. Start the container with the new image:
+>
+>    ```bash
+>    docker compose up -d
+>    ```
+>
+> 3. Verify the container is running properly:
+>
+>    ```bash
+>    docker compose logs -f
+>    ```
+>
+>    Once you confirm there are no errors in the logs, you're good to go.
+>
+> 4. Restore data: Restore all data from the admin panel (R2 files from the old version need to be re-uploaded)
+> 
+> ### Rollback to Previous Version
+>
+> If something goes wrong after upgrading, follow these steps to roll back:
+>
+> 1. Stop the container:
+>
+>    ```bash
+>    docker compose down
+>    ```
+>
+> 2. Pull the previous image version:
+>
+>    ```bash
+>    # amd64
+>    docker pull marseventh/cloudflare-imgbed@sha256:896dc1b79883
+>    # arm
+>    docker pull marseventh/cloudflare-imgbed@sha256:b5442ccc198c
+>    ```
+>
+>    Also update the `image` field in `docker-compose.yml` to the old version tag, then restart:
+>
+>    ```bash
+>    docker compose up -d
+>    ```
+>
+> **Notes**:
+> - Make sure the backup is complete before upgrading, and back up the data folder if necessary
+> - If you have a custom `docker-compose.yml` (e.g., custom ports, environment variables), preserve those settings during the upgrade
+> - For issues, please check the documentation and existing issues first, or submit a new issue
 
 ## 2025.2.6 Version 2.0 Upgrade Notes
 
@@ -85,20 +155,24 @@ Provides detailed deployment documentation, feature docs, development plans, upd
 
 **Demo Address**: [CloudFlare ImgBed](https://cfbed.1314883.xyz/) Access Password: `cfbed`
 
-![image-20250313204101984](static/readme/202503132041511.png)
+![image-20250313204101984](static/readme/login.png)
 
-![image-20250313204138886](static/readme/202503132041072.png)
+![image-20250313204138886](static/readme/upload.png)
 
 <details>
     <summary>Other page screenshots</summary>
 
-![image-20250313204308225](static/readme/202503132043466.png)
+![image-20250313204138886](static/readme/uploading.png)
 
-![image-20250314152355339](static/readme/202503141524797.png)
+![image-20250313204308225](static/readme/dashboard.png)
+
+![image-20250314152355339](static/readme/customer-config.png)
 
 ![status-page](static/readme/status-page.png)
 
-![image-20250313204325002](static/readme/202503132043265.png)
+![public-gallery](static/readme/public-gallery.png)
+
+
 
 </details>
 
@@ -114,7 +188,7 @@ Provides detailed deployment documentation, feature docs, development plans, upd
   
 - **Sponsors**: Thanks to the following sponsors for supporting this project!
 
-  [![sponsors](https://afdian-sponsors.sanyue.de/image)](https://afdian.com/a/marseventh)
+  [![sponsors](https://afdian-sponsors.sanyue.de/image?columns=12)](https://afdian.com/a/marseventh)
   
 - **Contributors**: Thanks to the following contributors for their selfless contributions!
 
@@ -128,8 +202,10 @@ Provides detailed deployment documentation, feature docs, development plans, upd
 
 # 6. Special Sponsors
 
-- **[CloudFlare](https://www.cloudflare.com) & [EdgeOne](https://edgeone.ai/?from=github)**：Provides CDN acceleration, and security protection
+- **[CloudFlare](https://www.cloudflare.com/) & [EdgeOne](https://edgeone.ai/?from=github)**：Provides CDN acceleration, and security protection
 
-  <a href="https://www.cloudflare.com"><img src="static/readme/cloudflare-logo.png" alt="Cloudflare Logo" height="25"></a> <a href="https://edgeone.ai/?from=github"><img src="https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png" alt="Tencent Logo" height="25"></a>
+  <a href="https://www.cloudflare.com"><img src="static/readme/cloudflare-logo.png" alt="Cloudflare Logo" height="25"></a> <a href="https://edgeone.ai/?from=github"><img src="/static/readme/edgeone-logo.png" alt="Tencent Logo" height="25"></a>
 
-- **[AsiaYun](https://www.asiayun.com/aff/WUDVIIUD)**：Provides cloud computing resources support
+- **[svyun](https://www.svyun.com/recommend/AELZ0UeMz8K11Zg7pEXC)**：Provides cloud computing resources support
+
+- **[Linux DO](https://linux.do/)**: Genuine · Friendly · United · Expert

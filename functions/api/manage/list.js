@@ -1,6 +1,16 @@
-import { readIndex, mergeOperationsToIndex, deleteAllOperations, rebuildIndex,
-    getIndexInfo, getIndexStorageStats } from '../../utils/indexManager.js';
+import {
+    readIndex, mergeOperationsToIndex, deleteAllOperations, rebuildIndex,
+    getIndexInfo, getIndexStorageStats
+} from '../../utils/indexManager.js';
 import { getDatabase } from '../../utils/databaseAdapter.js';
+
+// CORS 跨域响应头
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age': '86400',
+};
 
 export async function onRequest(context) {
     const { request, waitUntil } = context;
@@ -15,14 +25,36 @@ export async function onRequest(context) {
     let search = url.searchParams.get('search') || '';
     let channel = url.searchParams.get('channel') || '';
     let listType = url.searchParams.get('listType') || '';
+    let accessStatus = url.searchParams.get('accessStatus') || '';
     let action = url.searchParams.get('action') || '';
+    let includeTags = url.searchParams.get('includeTags') || '';
+    let excludeTags = url.searchParams.get('excludeTags') || '';
+    let label = url.searchParams.get('label') || '';
+    let fileType = url.searchParams.get('fileType') || '';
+    let channelName = url.searchParams.get('channelName') || '';
 
     // 处理搜索关键字
     if (search) {
         search = decodeURIComponent(search).trim();
     }
 
+    // 处理标签参数
+    const includeTagsArray = includeTags ? includeTags.split(',').map(t => t.trim()).filter(t => t) : [];
+    const excludeTagsArray = excludeTags ? excludeTags.split(',').map(t => t.trim()).filter(t => t) : [];
+
+    // 处理筛选参数（支持逗号分隔的多选）
+    const listTypeArray = listType ? listType.split(',').map(t => t.trim()).filter(t => t) : [];
+    const accessStatusArray = accessStatus ? accessStatus.split(',').map(t => t.trim()).filter(t => t) : [];
+    const labelArray = label ? label.split(',').map(t => t.trim()).filter(t => t) : [];
+    const fileTypeArray = fileType ? fileType.split(',').map(t => t.trim()).filter(t => t) : [];
+    const channelArray = channel ? channel.split(',').map(t => t.trim()).filter(t => t) : [];
+    const channelNameArray = channelName ? channelName.split(',').map(t => t.trim()).filter(t => t) : [];
+
     // 处理目录参数
+    if (dir) {
+        // 路径安全处理：防止路径穿越
+        dir = dir.replace(/\.\./g, '_').replace(/\\/g, '/').replace(/\/{2,}/g, '/');
+    }
     if (dir.startsWith('/')) {
         dir = dir.substring(1);
     }
@@ -38,7 +70,7 @@ export async function onRequest(context) {
             }));
 
             return new Response('Index rebuilt asynchronously', {
-                headers: { "Content-Type": "text/plain" }
+                headers: { "Content-Type": "text/plain", ...corsHeaders }
             });
         }
 
@@ -47,7 +79,7 @@ export async function onRequest(context) {
             waitUntil(mergeOperationsToIndex(context));
 
             return new Response('Operations merged into index asynchronously', {
-                headers: { "Content-Type": "text/plain" }
+                headers: { "Content-Type": "text/plain", ...corsHeaders }
             });
         }
 
@@ -56,7 +88,7 @@ export async function onRequest(context) {
             waitUntil(deleteAllOperations(context));
 
             return new Response('All operations deleted asynchronously', {
-                headers: { "Content-Type": "text/plain" }
+                headers: { "Content-Type": "text/plain", ...corsHeaders }
             });
         }
 
@@ -64,7 +96,7 @@ export async function onRequest(context) {
         if (action === 'index-storage-stats') {
             const stats = await getIndexStorageStats(context);
             return new Response(JSON.stringify(stats), {
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json", ...corsHeaders }
             });
         }
 
@@ -72,7 +104,7 @@ export async function onRequest(context) {
         if (action === 'info') {
             const info = await getIndexInfo(context);
             return new Response(JSON.stringify(info), {
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json", ...corsHeaders }
             });
         }
 
@@ -81,16 +113,22 @@ export async function onRequest(context) {
             const result = await readIndex(context, {
                 search,
                 directory: dir,
-                channel,
-                listType,
+                channel: channelArray,
+                listType: listTypeArray,
+                accessStatus: accessStatusArray,
+                label: labelArray,
+                fileType: fileTypeArray,
+                channelName: channelNameArray,
+                includeTags: includeTagsArray,
+                excludeTags: excludeTagsArray,
                 countOnly: true
             });
-            
-            return new Response(JSON.stringify({ 
+
+            return new Response(JSON.stringify({
                 sum: result.totalCount,
-                indexLastUpdated: result.indexLastUpdated 
+                indexLastUpdated: result.indexLastUpdated
             }), {
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json", ...corsHeaders }
             });
         }
 
@@ -100,24 +138,32 @@ export async function onRequest(context) {
             directory: dir,
             start,
             count,
-            channel,
-            listType,
+            channel: channelArray,
+            listType: listTypeArray,
+            accessStatus: accessStatusArray,
+            label: labelArray,
+            fileType: fileTypeArray,
+            channelName: channelNameArray,
+            includeTags: includeTagsArray,
+            excludeTags: excludeTagsArray,
             includeSubdirFiles: recursive,
         });
 
         // 索引读取失败，直接从 KV 中获取所有文件记录
         if (!result.success) {
             const dbRecords = await getAllFileRecords(context.env, dir);
-            
+
             return new Response(JSON.stringify({
                 files: dbRecords.files,
                 directories: dbRecords.directories,
                 totalCount: dbRecords.totalCount,
+                directFileCount: dbRecords.directFileCount,
+                directFolderCount: dbRecords.directFolderCount,
                 returnedCount: dbRecords.returnedCount,
                 indexLastUpdated: Date.now(),
                 isIndexedResponse: false // 标记这是来自 KV 的响应
             }), {
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json", ...corsHeaders }
             });
         }
 
@@ -131,11 +177,13 @@ export async function onRequest(context) {
             files: compatibleFiles,
             directories: result.directories,
             totalCount: result.totalCount,
+            directFileCount: result.directFileCount,
+            directFolderCount: result.directFolderCount,
             returnedCount: result.returnedCount,
             indexLastUpdated: result.indexLastUpdated,
             isIndexedResponse: true // 标记这是来自索引的响应
         }), {
-            headers: { "Content-Type": "application/json" }
+            headers: { "Content-Type": "application/json", ...corsHeaders }
         });
 
     } catch (error) {
@@ -145,7 +193,7 @@ export async function onRequest(context) {
             message: error.message
         }), {
             status: 500,
-            headers: { "Content-Type": "application/json" }
+            headers: { "Content-Type": "application/json", ...corsHeaders }
         });
     }
 }
@@ -187,7 +235,7 @@ async function getAllFileRecords(env, dir) {
             }
 
             if (!cursor) break;
-            
+
             // 添加协作点
             await new Promise(resolve => setTimeout(resolve, 10));
         }
@@ -209,6 +257,8 @@ async function getAllFileRecords(env, dir) {
             files: filteredRecords,
             directories: Array.from(directories),
             totalCount: allRecords.length,
+            directFileCount: filteredRecords.length,
+            directFolderCount: directories.size,
             returnedCount: filteredRecords.length
         };
 
@@ -218,6 +268,8 @@ async function getAllFileRecords(env, dir) {
             files: [],
             directories: [],
             totalCount: 0,
+            directFileCount: 0,
+            directFolderCount: 0,
             returnedCount: 0,
             error: error.message
         };

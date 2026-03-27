@@ -1,19 +1,17 @@
 import { S3Client, CopyObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { purgeCFCache } from "../../../utils/purgeCache";
+import { purgeCFCache, purgeRandomFileListCache, purgePublicFileListCache } from "../../../utils/purgeCache";
 import { moveFileInIndex, batchMoveFilesInIndex } from "../../../utils/indexManager.js";
 import { getDatabase } from '../../../utils/databaseAdapter.js';
+import { sanitizeUploadFolder } from "../../../upload/uploadTools.js";
 
 export async function onRequest(context) {
     const { request, env, params, waitUntil } = context;
 
     const url = new URL(request.url);
 
-    // 读取目标文件夹
-    const dist = url.searchParams.get('dist')
-        ? url.searchParams.get('dist').replace(/^\/+/, '')
-            .replace(/\/{2,}/g, '/')
-            .replace(/\/$/, '')
-        : '';
+    // 读取目标文件夹，并进行路径安全处理
+    const rawDist = url.searchParams.get('dist') || '';
+    const dist = sanitizeUploadFolder(rawDist);
 
     // 读取folder参数，判断是否为文件夹移动请求
     const folder = url.searchParams.get('folder');
@@ -32,10 +30,12 @@ export async function onRequest(context) {
             while (folderQueue.length > 0) {
                 const currentFolder = folderQueue.shift();
                 const curFolderName = currentFolder.path.split('/').pop();
-                
+
                 // 获取指定目录下的所有文件
                 const listUrl = new URL(`${url.origin}/api/manage/list?count=-1&dir=${currentFolder.path}`);
-                const listRequest = new Request(listUrl, request);
+                const listRequest = new Request(listUrl, {
+                    headers: request.headers,
+                });
                 const listResponse = await fetch(listRequest);
                 const listData = await listResponse.json();
 
@@ -166,10 +166,10 @@ async function moveFile(env, fileId, newFileId, cdnUrl, url) {
             throw new Error('Unsupported Channel');
         }
 
-        // 更新文件夹信息
-        const folderPath = newFileId.split('/').slice(0, -1).join('/');
-        img.metadata.Folder = folderPath;
-        
+        // 更新文件夹信息，根目录为空，否则为 aaa/123/ 的格式
+        const DirectoryPath = newFileId.split('/').slice(0, -1).join('/') === '' ? '' : newFileId.split('/').slice(0, -1).join('/') + '/';
+        img.metadata.Directory = DirectoryPath;
+
         // 更新KV存储
         await db.put(newFileId, img.value, { metadata: img.metadata });
         await db.delete(fileId);
@@ -177,20 +177,11 @@ async function moveFile(env, fileId, newFileId, cdnUrl, url) {
         // 清除CDN缓存
         await purgeCFCache(env, cdnUrl);
 
-        // 清除randomFileList API缓存
-        try {
-            const cache = caches.default;
-            const nullResponse = new Response(null, {
-                headers: { 'Cache-Control': 'max-age=0' },
-            });
-            
-            const normalizedFolder = fileId.split('/').slice(0, -1).join('/');
-            const normalizedDist = newFileId.split('/').slice(0, -1).join('/');
-            await cache.put(`${url.origin}/api/randomFileList?dir=${normalizedFolder}`, nullResponse);
-            await cache.put(`${url.origin}/api/randomFileList?dir=${normalizedDist}`, nullResponse);
-        } catch (error) {
-            console.error('Failed to clear cache:', error);
-        }
+        // 清除 api/randomFileList 等API缓存
+        const normalizedFolder = fileId.split('/').slice(0, -1).join('/');
+        const normalizedDist = newFileId.split('/').slice(0, -1).join('/');
+        await purgeRandomFileListCache(url.origin, normalizedFolder, normalizedDist);
+        await purgePublicFileListCache(url.origin, normalizedFolder, normalizedDist);
 
         return true;
     } catch (e) {
